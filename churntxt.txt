@@ -1,0 +1,683 @@
+Exploratory Data Analysis & Preprocessing 
+
+### Analysing  Categorical Variable 
+------------------------------------------------------------------------------------
+
+Categorical_columns = data.select_dtypes(include=['object'])
+Categorical_columns.columns
+
+------------------------------------------------------------------------------------
+from datetime import datetime 
+
+
+
+------------------------------------------------------------------------------------
+ # converting it to date formate 
+data.date_of_last_rech_6= data.date_of_last_rech_6.apply(lambda x : datetime.strptime(x , '%m/%d/%Y'))
+data.date_of_last_rech_7 = data.date_of_last_rech_7.apply(lambda x : datetime.strptime(x , '%m/%d/%Y'))
+data.date_of_last_rech_8 = data.date_of_last_rech_8.apply(lambda x : datetime.strptime(x , '%m/%d/%Y'))
+
+
+------------------------------------------------------------------------------------
+# extracting day from the date and updating the column
+data.date_of_last_rech_6= data.date_of_last_rech_6.dt.day
+data.date_of_last_rech_7= data.date_of_last_rech_7.dt.day
+data.date_of_last_rech_8= data.date_of_last_rech_8.dt.day
+
+------------------------------------------------------------------------------------
+
+plt.figure(figsize=(20, 20))
+plt.subplot(3,1,1)
+plt.title("date of last recharge day in June")
+sns.countplot(x = 'date_of_last_rech_6',  data = data)
+
+plt.subplot(3,1,2)
+plt.title("date of last recharge day in July")
+sns.countplot(x = 'date_of_last_rech_7', data = data)
+
+plt.subplot(3,1,3)
+plt.title("date of last recharge day in August")
+sns.countplot(x = 'date_of_last_rech_8', data = data)
+plt.xticks(rotation=90)
+
+plt.show()
+
+------------------------------------------------------------------------------------
+
+#### Here we can say that most recharges are on month end, and the company can give offers on other days so that company can get customers without compromising much on their revenue and can build trust by doing so.
+
+------------------------------------------------------------------------------------
+
+## Analysing Numerical columns 
+
+### Dropping constant valued columns 
+------------------------------------------------------------------------------------
+
+from sklearn.feature_selection import VarianceThreshold
+var_thres = VarianceThreshold(threshold=0)
+var_thres.fit(data)
+
+------------------------------------------------------------------------------------
+
+constant_columns = [column for column in data.columns
+                    if column not in data.columns[var_thres.get_support()]]
+
+print(len(constant_columns))
+
+------------------------------------------------------------------------------------
+for feature in constant_columns:
+     print(feature)
+
+------------------------------------------------------------------------------------
+
+data=data.drop(constant_columns,axis=1)
+------------------------------------------------------------------------------------
+
+data.shape
+
+------------------------------------------------------------------------------------
+
+## Handling Outliers
+
+
+------------------------------------------------------------------------------------
+
+def cap_outliers(array, k=3):
+    upper_limit = array.mean() + k*array.std()
+    lower_limit = array.mean() - k*array.std()
+    array[array<lower_limit] = lower_limit
+    array[array>upper_limit] = upper_limit
+    return array
+
+------------------------------------------------------------------------------------
+
+data.iloc[:,:-1] = data.iloc[:,:-1].apply(cap_outliers)
+
+------------------------------------------------------------------------------------
+numerical_columns = data.select_dtypes(include=['int64','float64'])
+
+------------------------------------------------------------------------------------
+num_colms1=numerical_columns[[
+       'arpu_6', 'arpu_7', 'arpu_8', 'onnet_mou_6', 'onnet_mou_7',
+       'onnet_mou_8', 'offnet_mou_6', 'offnet_mou_7', 'offnet_mou_8',
+       'roam_ic_mou_6', 'roam_ic_mou_7', 'roam_ic_mou_8', 'roam_og_mou_6',
+       'roam_og_mou_7', 'roam_og_mou_8']] 
+num_colms1.describe([.25,.50,.75,.9])
+#analysing 1 to 20 columns 
+
+------------------------------------------------------------------------------------
+
+##num_colms1.drop([""])
+
+sns.pairplot(num_colms1)
+plt.show()
+------------------------------------------------------------------------------------
+# correlation matrix
+#Plotting this helps to find if there are any correlations in columns 1 to 20. 
+cor = num_colms1.corr()
+cor.style.background_gradient(cmap="Greens")
+
+------------------------------------------------------------------------------------
+
+#plotting heatmap
+#Plotting this helps to find if there are any correlations in columns 1 to 20. 
+
+plt.figure(figsize=(10,8))
+sns.heatmap(pd.DataFrame(num_colms1, columns=num_colms1.columns).corr() , cmap="Greens")
+
+------------------------------------------------------------------------------------
+## Remarks
+
+From the above correlation matrix and heatmap, we can observe the following:
+
+* The average revenue per user for June and July are correlated.
+* The on net calls in June, July and August is correlated
+* Also, the off net calls in June, July and August is correlated
+
+From this we can infer than there are some patterns in this data eventhough the month changes
+
+------------------------------------------------------------------------------------
+data.roam_og_mou_8.value_counts()
+
+------------------------------------------------------------------------------------
+
+data.roam_og_mou_8.var()
+
+------------------------------------------------------------------------------------
+plt.figure(figsize=(15, 18))
+plt.subplot(3,3,1)
+sns.boxplot(x="churn_probability",y="arpu_6", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Average revenue per user in June", fontsize=12)
+
+
+
+plt.subplot(3,3,2)
+sns.boxplot(x="churn_probability",y="arpu_7", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Average revenue per user in July", fontsize=12)
+
+plt.subplot(3,3,3)
+sns.boxplot(x="churn_probability",y="arpu_8", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Average revenue per user in August", fontsize=12)
+
+
+plt.subplot(3,3,4)
+sns.boxplot(x="churn_probability",y="onnet_mou_6", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Calls within the same operator network in June", fontsize=12)
+
+
+
+plt.subplot(3,3,5)
+sns.boxplot(x="churn_probability",y="onnet_mou_7", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Calls within the same operator network in July", fontsize=12)
+
+
+plt.subplot(3,3,6)
+sns.boxplot(x="churn_probability",y="onnet_mou_8", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Calls within the same operator network in August", fontsize=12)
+
+plt.subplot(3,3,7)
+sns.boxplot(x="churn_probability",y="offnet_mou_6", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Calls outside the operator Telecom network in June", fontsize=12)
+
+
+
+plt.subplot(3,3,8)
+sns.boxplot(x="churn_probability",y="offnet_mou_7", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Calls outside the operator Telecom network in July", fontsize=12)
+
+
+plt.subplot(3,3,9)
+sns.boxplot(x="churn_probability",y="offnet_mou_8", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Calls outside the operator Telecom network in August", fontsize=12)
+
+plt.show()
+
+------------------------------------------------------------------------------------
+## Remarks
+
+From the boxplot, we can observe the following:
+*  There has been a decline in the average revenue of users who have churned in August compared to June and July.
+*  There has been a decline in the number of calls inside the same network operator from customer who have churned in August compared to June and July.
+*  There has been a decline in the number of calls outside the same network operator from customer who have churned in August compared to June and July.
+
+These indicates that the churning is more in August. So company should give more offers in August and month before to retain the customers.
+
+------------------------------------------------------------------------------------
+
+num_colms2=numerical_columns[['loc_og_t2t_mou_6', 'loc_og_t2t_mou_7', 'loc_og_t2t_mou_8',
+       'loc_og_t2m_mou_6', 'loc_og_t2m_mou_7', 'loc_og_t2m_mou_8',
+       'loc_og_t2f_mou_6', 'loc_og_t2f_mou_7', 'loc_og_t2f_mou_8',
+       'loc_og_t2c_mou_6', 'loc_og_t2c_mou_7', 'loc_og_t2c_mou_8',
+       'loc_og_mou_6', 'loc_og_mou_7', 'loc_og_mou_8', 'std_og_t2t_mou_6',
+       'std_og_t2t_mou_7', 'std_og_t2t_mou_8', 'std_og_t2m_mou_6',
+       'std_og_t2m_mou_7']]
+num_colms2.describe([.25,.50,.75,.90])#analysing 20 to 40 columns
+
+------------------------------------------------------------------------------------
+
+sns.pairplot(num_colms2)
+plt.show()
+------------------------------------------------------------------------------------
+# correlation matrix
+#Plotting this helps to find if there are any correlations in columns 20 to 40. 
+cor = num_colms2.corr()
+cor.style.background_gradient(cmap="Greens")
+
+------------------------------------------------------------------------------------
+#plotting heatmap
+#Plotting this helps to find if there are any correlations in columns 20 to 40. 
+
+plt.figure(figsize=(10,8))
+sns.heatmap(pd.DataFrame(num_colms2, columns=num_colms2.columns).corr() , cmap="Greens")
+
+------------------------------------------------------------------------------------
+
+## Remarks
+
+From the above correlation matrix and heatmap, we can observe the following:
+
+* The local outgoing call minutes within same operator for June, July and August are correlated which indicates that there are some patterns in this data eventhough the month changes.
+* The local outgoing call minutes outside the same operator and the local outgoing calls for June, July and August are correlated which indicates that they might be closely related.
+* The local outgoing call minutes in June, July and August is correlated which indicates that there are some patterns in this data eventhough the month changes.
+
+
+------------------------------------------------------------------------------------
+
+data.std_og_t2t_mou_6.value_counts()
+
+------------------------------------------------------------------------------------
+data.std_og_t2t_mou_7.var()
+
+------------------------------------------------------------------------------------
+
+plt.figure(figsize=(15, 5))
+plt.subplot(1,3,1)
+sns.boxplot(x="churn_probability",y="loc_og_mou_6", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of local outgoing call in June ", fontsize=12)
+
+
+
+plt.subplot(1,3,2)
+sns.boxplot(x="churn_probability",y="loc_og_mou_7", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of local outgoing call in July", fontsize=12)
+
+plt.subplot(1,3,3)
+sns.boxplot(x="churn_probability",y="loc_og_mou_8", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of local outgoing call in August", fontsize=12)
+
+
+plt.show()
+------------------------------------------------------------------------------------
+
+## Remarks
+
+From the boxplot, we can observe the following:
+    
+* The minutes of outgoing calls have decreased rapidly for churned cutomers in August which indicates that this can be a strong indicator for churn and it happens more in August
+------------------------------------------------------------------------------------
+num_colms3=numerical_columns[['std_og_t2m_mou_8', 'std_og_t2f_mou_6', 'std_og_t2f_mou_7',
+       'std_og_t2f_mou_8', 'std_og_mou_6', 'std_og_mou_7', 'std_og_mou_8',
+       'isd_og_mou_6', 'isd_og_mou_7', 'isd_og_mou_8', 'spl_og_mou_6',
+       'spl_og_mou_7', 'spl_og_mou_8', 'og_others_6', 'og_others_7',
+       'og_others_8', 'total_og_mou_6']]
+num_colms3.describe([.25,.50,.75,.90])#analysing 40 to 60 columns  #['std_og_t2c_mou_6', 'std_og_t2c_mou_8', 'std_og_t2c_mou_7']
+
+------------------------------------------------------------------------------------
+
+
+sns.pairplot(num_colms3)
+plt.show()
+
+------------------------------------------------------------------------------------ 
+# correlation matrix
+#Plotting this helps to find if there are any correlations in columns 40 to 60. 
+cor = num_colms3.corr()
+cor.style.background_gradient(cmap="Greens")
+
+
+
+------------------------------------------------------------------------------------ 
+#plotting heatmap
+#Plotting this helps to find if there are any correlations in columns 40 to 60. 
+
+plt.figure(figsize=(10,8))
+sns.heatmap(pd.DataFrame(num_colms3, columns=num_colms3.columns).corr() , cmap="Greens")
+
+------------------------------------------------------------------------------------ 
+## Remarks
+
+From the above correlation matrix and heatmap, we can observe the following:
+
+* The STD outgoing call minutes for June, July and August are correlated which indicates that there are some patterns in this data eventhough the month changes.
+* The STD outgoing call minutes in June and total outgoing call minutes in June are correlated which indicates that in June, STD calls were mostly made by customers
+
+------------------------------------------------------------------------------------ 
+data.og_others_6.value_counts()
+
+------------------------------------------------------------------------------------ 
+
+data.og_others_6.var()
+------------------------------------------------------------------------------------ 
+plt.figure(figsize=(15, 5))
+plt.subplot(1,3,1)
+sns.boxplot(x="churn_probability",y="spl_og_mou_6", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of special outgoing call in June ", fontsize=12)
+
+
+plt.subplot(1,3,2)
+sns.boxplot(x="churn_probability",y="spl_og_mou_7", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of special outgoing call in July", fontsize=12)
+
+plt.subplot(1,3,3)
+sns.boxplot(x="churn_probability",y="spl_og_mou_8", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of local outgoing call in August", fontsize=12)
+
+
+
+plt.show()
+------------------------------------------------------------------------------------ 
+
+## Remarks
+
+From the boxplot, we can observe the following:
+    
+* The minutes of special outgoing calls have decreased rapidly for churned cutomers in August which indicates that this can be a strong indicator for churn and it happens more in August
+------------------------------------------------------------------------------------ 
+
+num_colms4=numerical_columns[['total_og_mou_7', 'total_og_mou_8', 'loc_ic_t2t_mou_6',
+       'loc_ic_t2t_mou_7', 'loc_ic_t2t_mou_8', 'loc_ic_t2m_mou_6',
+       'loc_ic_t2m_mou_7', 'loc_ic_t2m_mou_8', 'loc_ic_t2f_mou_6',
+       'loc_ic_t2f_mou_7', 'loc_ic_t2f_mou_8', 'loc_ic_mou_6', 'loc_ic_mou_7',
+       'loc_ic_mou_8', 'std_ic_t2t_mou_6', 'std_ic_t2t_mou_7',
+       'std_ic_t2t_mou_8', 'std_ic_t2m_mou_6', 'std_ic_t2m_mou_7',
+       'std_ic_t2m_mou_8']]
+num_colms4.describe([.25,.50,.75,.90])#analysing 60 to 80 columns 
+------------------------------------------------------------------------------------ 
+
+sns.pairplot(num_colms4)
+plt.show()
+
+------------------------------------------------------------------------------------ 
+
+# correlation matrix
+#Plotting this helps to find if there are any correlations in columns 60 to 80. 
+cor = num_colms4.corr()
+cor.style.background_gradient(cmap="Greens")
+------------------------------------------------------------------------------------ 
+
+#plotting heatmap
+#Plotting this helps to find if there are any correlations in columns 60 to 80. 
+
+plt.figure(figsize=(10,8))
+sns.heatmap(pd.DataFrame(num_colms4, columns=num_colms4.columns).corr() , cmap="Greens")
+------------------------------------------------------------------------------------ 
+
+## Remarks
+
+From the above correlation matrix and heatmap, we can observe the following:
+
+* The local incoming call minute outside same telecom operator in June, July and August is correlated
+* The local incoming call minute within same telecom operator in June, July and August is correlated
+* The local incoming call minute in June, July and August is correlated
+* The local incoming call minute within same telecom operator fixed lines in June, July and August is correlated
+#### From the above points, we can infer than there are some patterns in this data eventhough the month changes
+* Also, the local incoming call minutes in June, July, August and local incoming call minutes from different operator in June, July, August are correlated which indicates that incoming calls were mostly made by customers from different operator
+------------------------------------------------------------------------------------ 
+data.loc_ic_t2f_mou_8.value_counts()
+
+------------------------------------------------------------------------------------ 
+
+data.std_ic_t2t_mou_7.var()
+------------------------------------------------------------------------------------ 
+
+plt.figure(figsize=(15, 12))
+plt.subplot(2,3,1)
+sns.boxplot(x="churn_probability",y="total_og_mou_6", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of total outgoing calls in June", fontsize=12)
+
+
+
+plt.subplot(2,3,2)
+sns.boxplot(x="churn_probability",y="total_og_mou_7", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of total outgoing calls in July", fontsize=12)
+
+plt.subplot(2,3,3)
+sns.boxplot(x="churn_probability",y="total_og_mou_8", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of total outgoing calls in August", fontsize=12)
+
+
+plt.subplot(2,3,4)
+sns.boxplot(x="churn_probability",y="loc_ic_mou_6", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of local incoming calls in June", fontsize=12)
+
+
+
+plt.subplot(2,3,5)
+sns.boxplot(x="churn_probability",y="loc_ic_mou_7", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of local incoming calls in July", fontsize=12)
+
+
+plt.subplot(2,3,6)
+sns.boxplot(x="churn_probability",y="loc_ic_mou_8", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of local incoming calls in August", fontsize=12)
+
+
+
+plt.show()
+
+------------------------------------------------------------------------------------ 
+
+## Remarks
+
+From the boxplot, we can observe the following:
+    
+* The minutes of total outgoing calls and local incoming calls have decreased rapidly for churned cutomers in August which indicates that this can be a strong indicator for churn and it happens more in August
+------------------------------------------------------------------------------------ 
+num_colms5=numerical_columns[['std_ic_t2f_mou_6', 'std_ic_t2f_mou_7', 'std_ic_t2f_mou_8',
+       'std_ic_mou_6', 'std_ic_mou_7', 'std_ic_mou_8', 'total_ic_mou_6',
+       'total_ic_mou_7', 'total_ic_mou_8', 'spl_ic_mou_6', 'spl_ic_mou_7',
+       'spl_ic_mou_8', 'isd_ic_mou_6', 'isd_ic_mou_7', 'isd_ic_mou_8',
+       'ic_others_6', 'ic_others_7']]
+num_colms5.describe([.25,.50,.75,.90])#analysing 80 to 100 columns #std_ic_t2o_mou_8', 'std_ic_t2o_mou_6', 'std_ic_t2o_mou_7'
+
+------------------------------------------------------------------------------------ 
+
+sns.pairplot(num_colms5)
+plt.show()
+------------------------------------------------------------------------------------ 
+
+# correlation matrix
+#Plotting this helps to find if there are any correlations in columns 80 to 100. 
+cor = num_colms5.corr()
+cor.style.background_gradient(cmap="Greens")
+
+------------------------------------------------------------------------------------ 
+#plotting heatmap
+#Plotting this helps to find if there are any correlations in columns 80 to 100. 
+
+plt.figure(figsize=(10,8))
+sns.heatmap(pd.DataFrame(num_colms5, columns=num_colms5.columns).corr() , cmap="Greens")
+
+------------------------------------------------------------------------------------ 
+
+## Remarks
+
+From the above correlation matrix and heatmap, we can observe the following:
+
+* The total incoming call minutes for June, July and August are correlated which indicates that there are some patterns in this data eventhough the month changes.
+------------------------------------------------------------------------------------ 
+
+data.ic_others_6.value_counts()
+------------------------------------------------------------------------------------ 
+
+data.ic_others_8.var()
+
+------------------------------------------------------------------------------------ 
+
+plt.figure(figsize=(15, 12))
+plt.subplot(2,3,1)
+sns.boxplot(x="churn_probability",y="std_ic_mou_6", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of STD incoming calls in June", fontsize=12)
+
+
+
+plt.subplot(2,3,2)
+sns.boxplot(x="churn_probability",y="std_ic_mou_7", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of STD incoming calls in July", fontsize=12)
+
+plt.subplot(2,3,3)
+sns.boxplot(x="churn_probability",y="std_ic_mou_8", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of STD incoming calls in August", fontsize=12)
+
+
+plt.subplot(2,3,4)
+sns.boxplot(x="churn_probability",y="total_ic_mou_6", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of total incoming calls in June", fontsize=12)
+
+
+
+plt.subplot(2,3,5)
+sns.boxplot(x="churn_probability",y="total_ic_mou_7", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of total incoming calls in July", fontsize=12)
+
+
+plt.subplot(2,3,6)
+sns.boxplot(x="churn_probability",y="total_ic_mou_8", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Minutes of total incoming calls in August", fontsize=12)
+
+
+
+plt.show()
+
+------------------------------------------------------------------------------------ 
+
+## Remarks
+
+From the boxplot, we can observe the following:
+    
+* The minutes of total incoming calls and STD incoming calls have decreased rapidly for churned cutomers in August which indicates that this can be a strong indicator for churn and it happens more in August
+------------------------------------------------------------------------------------ 
+
+num_colms6=numerical_columns[['ic_others_8', 'total_rech_num_6', 'total_rech_num_7',
+       'total_rech_num_8', 'total_rech_amt_6', 'total_rech_amt_7',
+       'total_rech_amt_8', 'max_rech_amt_6', 'max_rech_amt_7',
+       'max_rech_amt_8', 'date_of_last_rech_6', 'date_of_last_rech_7',
+       'date_of_last_rech_8', 'last_day_rch_amt_6', 'last_day_rch_amt_7',
+       'last_day_rch_amt_8', 'vol_2g_mb_6', 'vol_2g_mb_7', 'vol_2g_mb_8',
+       'vol_3g_mb_6']]
+num_colms6.describe([.25,.50,.75,.90])#analysing 100 to 120 columns 
+------------------------------------------------------------------------------------ 
+
+sns.pairplot(num_colms6)
+plt.show()
+
+------------------------------------------------------------------------------------ 
+
+# correlation matrix
+#Plotting this helps to find if there are any correlations in columns 100 to 120. 
+cor = num_colms6.corr()
+cor.style.background_gradient(cmap="Greens")
+------------------------------------------------------------------------------------ 
+
+#plotting heatmap
+#Plotting this helps to find if there are any correlations in columns 100 to 120. 
+
+plt.figure(figsize=(10,8))
+sns.heatmap(pd.DataFrame(num_colms6, columns=num_colms6.columns).corr() , cmap="Greens")
+------------------------------------------------------------------------------------ 
+
+## Remarks
+
+There isn't much correlation observed here.
+------------------------------------------------------------------------------------ 
+data.vol_3g_mb_6.value_counts()
+
+
+------------------------------------------------------------------------------------ 
+
+data.vol_3g_mb_6.var()
+------------------------------------------------------------------------------------ 
+
+plt.figure(figsize=(15, 12))
+plt.subplot(2,3,1)
+sns.boxplot(x="churn_probability",y="total_rech_num_6", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Total recharge number in June", fontsize=12)
+
+
+
+plt.subplot(2,3,2)
+sns.boxplot(x="churn_probability",y="total_rech_num_7", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Total recharge number in July", fontsize=12)
+
+plt.subplot(2,3,3)
+sns.boxplot(x="churn_probability",y="total_rech_num_8", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Total recharge number in August", fontsize=12)
+
+
+plt.subplot(2,3,4)
+sns.boxplot(x="churn_probability",y="total_rech_amt_6", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Total recharge amount in June", fontsize=12)
+
+
+
+plt.subplot(2,3,5)
+sns.boxplot(x="churn_probability",y="total_rech_amt_7", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Total recharge amount in July", fontsize=12)
+
+
+plt.subplot(2,3,6)
+sns.boxplot(x="churn_probability",y="total_rech_amt_8", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Total recharge amount in August", fontsize=12)
+
+
+
+plt.show()
+------------------------------------------------------------------------------------ 
+
+## Remarks
+
+From the boxplot, we can observe the following:
+    
+* The total recharge number and total recharge amount have decreased rapidly for churned cutomers in August which indicates that this can be a strong indicator for churn and it happens more in August
+------------------------------------------------------------------------------------ 
+
+
+num_colms7=numerical_columns[['vol_3g_mb_7', 'vol_3g_mb_8', 'monthly_2g_6', 'monthly_2g_7',
+       'monthly_2g_8', 'sachet_2g_6', 'sachet_2g_7', 'sachet_2g_8',
+       'monthly_3g_6', 'monthly_3g_7', 'monthly_3g_8', 'sachet_3g_6',
+       'sachet_3g_7', 'sachet_3g_8', 'aon', 'aug_vbc_3g', 'jul_vbc_3g',
+       'jun_vbc_3g', 'churn_probability']]
+num_colms7.describe([.25,.50,.75,.90])#analysing 120 to 139 columns 
+------------------------------------------------------------------------------------ 
+
+sns.pairplot(num_colms7)
+plt.show()
+------------------------------------------------------------------------------------ 
+
+# correlation matrix
+#Plotting this helps to find if there are any correlations in columns 120 to 139. 
+cor = num_colms7.corr()
+cor.style.background_gradient(cmap="Greens")
+------------------------------------------------------------------------------------ 
+
+#plotting heatmap
+#Plotting this helps to find if there are any correlations in columns 120 to 139. 
+
+plt.figure(figsize=(10,8))
+sns.heatmap(pd.DataFrame(num_colms7, columns=num_colms7.columns).corr() , cmap="Greens")
+------------------------------------------------------------------------------------ 
+## Remarks
+
+There isn't much correlation observed here.
+
+
+------------------------------------------------------------------------------------ 
+plt.figure(figsize=(10, 5))
+plt.subplot(1,1,1)
+sns.boxplot(x="churn_probability",y="aon", data=data ,palette="hls")
+plt.xlabel("Churn Type ", fontsize=12)
+plt.ylabel("Number of days the customer is using the operator T network", fontsize=12)
+
+plt.show()
+
+------------------------------------------------------------------------------------ 
+
+## Remarks
+
+* This indicates that customers who have spend more than 1000 days in the network is less likely to churn.
+------------------------------------------------------------------------------------ 
+
+
